@@ -3,25 +3,25 @@
 
 // Limits of exact-width integer types.
 
-#define INT8_MIN	(-(2 << (8  - 1)))
-#define INT16_MIN	(-(2 << (16 - 1)))
-#define INT32_MIN	(-(2 << (32 - 1)))
+#define INT8_MIN	(-(1 << (8  - 1)))
+#define INT16_MIN	(-(1 << (16 - 1)))
+#define INT32_MIN	(-(1 << (32 - 1)))
 #if (_MLIBC_BITS == 64)
-#define INT64_MIN	(-(2 << (64 - 1)))
+#define INT64_MIN	(-(1 << (64 - 1)))
 #endif
 
-#define INT8_MAX	((2 << (8  - 1)) - 1)
-#define INT16_MAX	((2 << (16 - 1)) - 1)
-#define INT32_MAX	((2 << (32 - 1)) - 1)
+#define INT8_MAX	((1 << (8  - 1)) - 1)
+#define INT16_MAX	((1 << (16 - 1)) - 1)
+#define INT32_MAX	((1 << (32 - 1)) - 1)
 #if (_MLIBC_BITS == 64)
-#define INT64_MAX	((2 << (64 - 1)) - 1)
+#define INT64_MAX	((1 << (64 - 1)) - 1)
 #endif
 
-#define UINT8_MAX	((2 << 8 ) - 1)
-#define UINT16_MAX	((2 << 16) - 1)
-#define UINT32_MAX	((2 << 32) - 1)
+#define UINT8_MAX	((1 << 8 ) - 1)
+#define UINT16_MAX	((1 << 16) - 1)
+#define UINT32_MAX	((1 << 32) - 1)
 #if (_MLIBC_BITS == 64)
-#define UINT64_MAX	((2 << 64) - 1)
+#define UINT64_MAX	((1 << 64) - 1)
 #endif
 
 // Limits of minimum-width integer types.
