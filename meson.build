@@ -263,7 +263,6 @@ elif host_machine.system() == 'astral'
 	internal_conf.set10('MLIBC_MAP_FILE_WINDOWS', true)
 	subdir('sysdeps/astral')
 elif host_machine.system() == 'menix'
-	linux_option = false
 	rtld_include_dirs += include_directories('sysdeps/menix/include')
 	libc_include_dirs += include_directories('sysdeps/menix/include')
 	subdir('sysdeps/menix')
