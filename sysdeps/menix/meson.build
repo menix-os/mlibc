@@ -64,6 +64,11 @@ if not no_headers
 		subdir: 'abi-bits',
 		follow_symlinks: true,
 	)
+
+	install_headers(
+		'include/sys/sysmacros.h',
+		subdir: 'sys',
+	)
 endif
 
 if not headers_only
