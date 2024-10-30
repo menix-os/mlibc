@@ -1,16 +1,22 @@
+#include <menix/syscall.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <menix/syscall.h>
 
 size_t syscall(size_t num, size_t a0, size_t a1, size_t a2, size_t a3, size_t a4, size_t a5) {
-	register size_t arg0 asm("rdi") = a0;
-    register size_t arg1 asm("rsi") = a1;
-    register size_t arg2 asm("rdx") = a2;
-    register size_t arg3 asm("r8") = a3;
-    register size_t arg4 asm("r10") = a4;
-    register size_t arg5 asm("r9") = a5;
-    register size_t selector asm("rax") = num;
-	asm volatile("syscall" : "=r"(selector) : "r"(arg0), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5));
-
-	return selector;
+	size_t result = 0;
+	asm volatile(
+		"mov %1, %%rax;"
+		"mov %2, %%rdi;"
+		"mov %3, %%rsi;"
+		"mov %4, %%rdx;"
+		"mov %5, %%r8;"
+		"mov %6, %%r10;"
+		"mov %7, %%r9;"
+		"syscall;"
+		"mov %%rax, %0"
+		: "=m"(result)
+		: "g"(num), "g"(a0), "g"(a1), "g"(a2), "g"(a3), "g"(a4), "g"(a5)
+		: "rax", "rdi", "rsi", "rdx", "r8", "r10", "r9", "rcx", "r11", "memory"
+	);
+	return result;
 }

@@ -17,16 +17,17 @@
 
 namespace mlibc {
 	void sys_libc_log(const char *message) {
-		syscall(SYSCALL_write, 1, (size_t)message);
+		ssize_t written;
+		sys_write(1, message, strlen(message), &written);
 	}
 
 	[[noreturn]] void sys_libc_panic() {
-		// TODO
+		sys_libc_log("\nMLIBC PANIC\n");
+		sys_exit(1);
 	}
 
 	int sys_tcb_set(void *pointer) {
-		// TODO
-		return 0;
+		return syscall(SYSCALL_archctl, ArchCtl_SetFsBase, (size_t)pointer);
 	}
 
 	int sys_futex_tid() {
@@ -55,44 +56,56 @@ namespace mlibc {
 	}
 
 	int sys_open(const char *pathname, int flags, mode_t mode, int *fd) {
-		// TODO
+		size_t result = syscall(SYSCALL_open, (size_t)pathname, flags, mode);
+
+		if (result < 0)
+			return result;
+
+		*fd = (int)result;
+
 		return 0;
 	}
 
 	int sys_read(int fd, void *buf, size_t count, ssize_t *bytes_read) {
-		// TODO
+		size_t result = syscall(SYSCALL_read, (size_t)fd, (size_t)buf, count);
+		if (result < 0)
+			return result;
+
+		*bytes_read = result;
 		return 0;
 	}
 
 	int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
-		// TODO
+		size_t result = syscall(SYSCALL_seek, fd, offset, whence);
+
+		if (result < 0)
+			return result;
+
+		*new_offset = result;
 		return 0;
 	}
 
 	int sys_close(int fd) {
-		// TODO
-		return 0;
+		return syscall(SYSCALL_close, fd);
 	}
 
 	int sys_stat(fsfd_target fsfdt, int fd, const char *path, int flags,
 			struct stat *statbuf) {
 		// TODO
-		return 0;
+		return syscall(SYSCALL_stat, (size_t)path, (size_t)statbuf);
 	}
 
 	int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, off_t offset, void **window) {
-		// TODO
-		return 0;
+		(void)window;
+		return syscall(SYSCALL_mmap, (size_t)hint, size, prot, flags, fd, offset);
 	}
 
 	int sys_vm_unmap(void *pointer, size_t size) {
-		// TODO
-		return 0;
+		return syscall(SYSCALL_munmap, (size_t)pointer, size);
 	}
 
 	int sys_vm_protect(void *pointer, size_t size, int prot) {
-		// TODO
-		return 0;
+		return syscall(SYSCALL_mprotect, (size_t)pointer, size, prot);
 	}
 
 	void sys_exit(int code) {
