@@ -19,6 +19,7 @@ namespace mlibc {
 	void sys_libc_log(const char *message) {
 		ssize_t written;
 		sys_write(1, message, strlen(message), &written);
+		sys_write(1, "\n", 1, &written);
 	}
 
 	[[noreturn]] void sys_libc_panic() {
@@ -27,6 +28,7 @@ namespace mlibc {
 	}
 
 	int sys_tcb_set(void *pointer) {
+		mlibc::infoLogger() << "Hello" << frg::endlog;
 		return syscall(SYSCALL_archctl, ArchCtl_SetFsBase, (size_t)pointer);
 	}
 
@@ -46,7 +48,7 @@ namespace mlibc {
 	}
 
 	int sys_anon_allocate(size_t size, void **pointer) {
-		// TODO
+		*pointer = (void*)syscall(SYSCALL_mmap, 0, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
 		return 0;
 	}
 
@@ -76,10 +78,10 @@ namespace mlibc {
 	}
 
 	int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
-		size_t result = syscall(SYSCALL_seek, fd, offset, whence);
+		ssize_t result = syscall(SYSCALL_seek, fd, offset, whence);
 
 		if (result < 0)
-			return result;
+			return -result;
 
 		*new_offset = result;
 		return 0;
@@ -97,7 +99,11 @@ namespace mlibc {
 
 	int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, off_t offset, void **window) {
 		(void)window;
-		return syscall(SYSCALL_mmap, (size_t)hint, size, prot, flags, fd, offset);
+		void* result = (void*)syscall(SYSCALL_mmap, (size_t)hint, size, prot, flags, fd, offset);
+		if (result == MAP_FAILED)
+			return ENOMEM;
+		*window = result;
+		return 0;
 	}
 
 	int sys_vm_unmap(void *pointer, size_t size) {
