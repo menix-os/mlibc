@@ -2,7 +2,6 @@
 #define _MENIX_SYSCALL_H
 
 #include <stddef.h>
-#include <stdint.h>
 
 #define SYSCALL_exit 0
 #define SYSCALL_open 1
@@ -45,10 +44,39 @@
 #define SYSCALL_uname 38
 #define SYSCALL_powerctl 39
 #define SYSCALL_archctl 40
+#define SYSCALL_getcwd 41
 
 #ifndef __MLIBC_ABI_ONLY
 
-size_t syscall(size_t num, size_t a0 = 0, size_t a1 = 0, size_t a2 = 0, size_t a3 = 0, size_t a4 = 0, size_t a5 = 0);
+struct syscall_result {
+	size_t value;
+	size_t error;
+};
+static_assert(sizeof(syscall_result) == 16);
+
+#define SYSCALL_ERR_CHECK(result) if (result.error != 0) { return result.error; }
+
+#ifdef __x86_64__
+extern "C" inline syscall_result syscall(size_t num, size_t a0 = 0, size_t a1 = 0, size_t a2 = 0, size_t a3 = 0, size_t a4 = 0, size_t a5 = 0) {
+	syscall_result r;
+	asm volatile(
+		"mov %2, %%rax;"
+		"mov %3, %%rdi;"
+		"mov %4, %%rsi;"
+		"mov %5, %%rdx;"
+		"mov %6, %%r8;"
+		"mov %7, %%r10;"
+		"mov %8, %%r9;"
+		"syscall;"
+		"mov %%rax, %0;"
+		"mov %%rdx, %1;"
+		: "=g"(r.value), "=g"(r.error)
+		: "g"(num), "g"(a0), "g"(a1), "g"(a2), "g"(a3), "g"(a4), "g"(a5)
+		: "rax", "rdi", "rsi", "rdx", "r8", "r10", "r9", "rcx", "r11", "memory"
+	);
+	return r;
+}
+#endif /* __x86_64 */
 
 #endif /* !__MLIBC_ABI_ONLY */
 

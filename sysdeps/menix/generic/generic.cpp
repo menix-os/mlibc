@@ -19,17 +19,17 @@ namespace mlibc {
 	void sys_libc_log(const char *message) {
 		ssize_t written;
 		sys_write(1, message, strlen(message), &written);
-		sys_write(1, "\n", 1, &written);
+		char c = '\n';
+		sys_write(1, &c, 1, &written);
 	}
 
 	[[noreturn]] void sys_libc_panic() {
-		sys_libc_log("\nMLIBC PANIC\n");
+		//sys_libc_log("\nMLIBC PANIC\n");
 		sys_exit(1);
 	}
 
 	int sys_tcb_set(void *pointer) {
-		mlibc::infoLogger() << "Hello" << frg::endlog;
-		return syscall(SYSCALL_archctl, ArchCtl_SetFsBase, (size_t)pointer);
+		return syscall(SYSCALL_archctl, ArchCtl_SetFsBase, (size_t)pointer).error;
 	}
 
 	int sys_futex_tid() {
@@ -48,70 +48,59 @@ namespace mlibc {
 	}
 
 	int sys_anon_allocate(size_t size, void **pointer) {
-		*pointer = (void*)syscall(SYSCALL_mmap, 0, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+		syscall_result r = syscall(SYSCALL_mmap, 0, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+		SYSCALL_ERR_CHECK(r)
+		*pointer = (void*)r.value;
 		return 0;
 	}
 
 	int sys_anon_free(void *pointer, size_t size) {
-		// TODO
-		return 0;
+		return syscall(SYSCALL_munmap, (size_t)pointer, size).error;
 	}
 
 	int sys_open(const char *pathname, int flags, mode_t mode, int *fd) {
-		size_t result = syscall(SYSCALL_open, (size_t)pathname, flags, mode);
-
-		if (result < 0)
-			return result;
-
-		*fd = (int)result;
-
+		syscall_result r = syscall(SYSCALL_open, (size_t)pathname, flags, mode);
+		SYSCALL_ERR_CHECK(r)
+		*fd = (int)r.value;
 		return 0;
 	}
 
 	int sys_read(int fd, void *buf, size_t count, ssize_t *bytes_read) {
-		size_t result = syscall(SYSCALL_read, (size_t)fd, (size_t)buf, count);
-		if (result < 0)
-			return result;
-
-		*bytes_read = result;
+		syscall_result r = syscall(SYSCALL_read, (size_t)fd, (size_t)buf, count);
+		SYSCALL_ERR_CHECK(r)
+		*bytes_read = (ssize_t)r.value;
 		return 0;
 	}
 
 	int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
-		ssize_t result = syscall(SYSCALL_seek, fd, offset, whence);
-
-		if (result < 0)
-			return -result;
-
-		*new_offset = result;
+		syscall_result r = syscall(SYSCALL_seek, fd, offset, whence);
+		SYSCALL_ERR_CHECK(r)
+		*new_offset = r.value;
 		return 0;
 	}
 
 	int sys_close(int fd) {
-		return syscall(SYSCALL_close, fd);
+		return syscall(SYSCALL_close, fd).error;
 	}
 
-	int sys_stat(fsfd_target fsfdt, int fd, const char *path, int flags,
-			struct stat *statbuf) {
+	int sys_stat(fsfd_target fsfdt, int fd, const char *path, int flags, struct stat *statbuf) {
 		// TODO
-		return syscall(SYSCALL_stat, (size_t)path, (size_t)statbuf);
+		return syscall(SYSCALL_stat, (size_t)path, (size_t)statbuf).error;
 	}
 
 	int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, off_t offset, void **window) {
-		(void)window;
-		void* result = (void*)syscall(SYSCALL_mmap, (size_t)hint, size, prot, flags, fd, offset);
-		if (result == MAP_FAILED)
-			return ENOMEM;
-		*window = result;
+		syscall_result r = syscall(SYSCALL_mmap, (size_t)hint, size, prot, flags, fd, offset);
+		SYSCALL_ERR_CHECK(r)
+		*window = (void*)r.value;
 		return 0;
 	}
 
 	int sys_vm_unmap(void *pointer, size_t size) {
-		return syscall(SYSCALL_munmap, (size_t)pointer, size);
+		return syscall(SYSCALL_munmap, (size_t)pointer, size).error;
 	}
 
 	int sys_vm_protect(void *pointer, size_t size, int prot) {
-		return syscall(SYSCALL_mprotect, (size_t)pointer, size, prot);
+		return syscall(SYSCALL_mprotect, (size_t)pointer, size, prot).error;
 	}
 
 	void sys_exit(int code) {
@@ -120,11 +109,9 @@ namespace mlibc {
 	}
 
 	int sys_write(int fd, const void *buf, size_t count, ssize_t *bytes_written) {
-		size_t result = syscall(SYSCALL_write, (size_t)fd, (size_t)buf, count);
-		if (result < 0)
-			return result;
-
-		*bytes_written = result;
+		syscall_result r = syscall(SYSCALL_write, (size_t)fd, (size_t)buf, count);
+		SYSCALL_ERR_CHECK(r)
+		*bytes_written = r.value;
 		return 0;
 	}
 
@@ -132,4 +119,66 @@ namespace mlibc {
 		// TODO
 		return 0;
 	}
+
+	int sys_uname(struct utsname *buf) {
+		syscall_result r = syscall(SYSCALL_uname, (size_t)buf);
+		SYSCALL_ERR_CHECK(r)
+		return 0;
+	}
+
+	pid_t sys_getpid() {
+		return syscall(SYSCALL_getpid).value;
+	}
+
+	pid_t sys_getppid() {
+		return 0;
+	}
+
+	uid_t sys_getuid() {
+		return 0;
+	}
+
+	uid_t sys_geteuid() {
+		return 0;
+	}
+
+	gid_t sys_getgid() {
+		return 0;
+	}
+
+	int sys_setgid(gid_t) {
+		return 0;
+	}
+
+	int sys_getpgid(pid_t, pid_t *) {
+		return 0;
+	}
+
+	gid_t sys_getegid() {
+		return 0;
+	}
+
+	int sys_setpgid(pid_t, pid_t) {
+		return 0;
+	}
+
+	int sys_ttyname(int, char *, size_t) {
+		return ENOSYS;
+	}
+
+	int sys_getcwd(char *buffer, size_t size) {
+		return syscall(SYSCALL_getcwd, (size_t)buffer, size).error;
+	}
+
+	int sys_execve(const char *path, char *const argv[], char *const envp[]) {
+		return syscall(SYSCALL_execve, (size_t)path, (size_t)argv, (size_t)envp).error;
+	}
+
+	int sys_isatty(int fd) {
+		// TODO
+		if (fd >= 0 && fd < 2)
+			return 0;
+		return ENOTTY;
+	}
+
 } // namespace mlibc

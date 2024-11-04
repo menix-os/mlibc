@@ -6,14 +6,12 @@ sysdep_supported_options = {
 }
 
 rtld_sources += files(
-	'generic/generic.cpp',
-	host_machine.cpu_family() / 'syscall.cpp'
+	'generic/generic.cpp'
 )
 
 libc_sources += files(
 	'generic/entry.cpp',
-	'generic/generic.cpp',
-	host_machine.cpu_family() / 'syscall.cpp'
+	'generic/generic.cpp'
 )
 
 if not no_headers
