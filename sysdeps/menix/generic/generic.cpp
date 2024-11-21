@@ -84,8 +84,7 @@ namespace mlibc {
 	}
 
 	int sys_stat(fsfd_target fsfdt, int fd, const char *path, int flags, struct stat *statbuf) {
-		// TODO
-		return syscall(SYSCALL_stat, (size_t)path, (size_t)statbuf).error;
+		return syscall(SYSCALL_stat, (size_t)fd, (size_t)path, (size_t)statbuf).error;
 	}
 
 	int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, off_t offset, void **window) {
@@ -124,6 +123,24 @@ namespace mlibc {
 		syscall_result r = syscall(SYSCALL_uname, (size_t)buf);
 		SYSCALL_ERR_CHECK(r)
 		return 0;
+	}
+
+	int sys_fork(pid_t *child) {
+		syscall_result r = syscall(SYSCALL_fork);
+		SYSCALL_ERR_CHECK(r)
+		*child = r.value;
+		return 0;
+	}
+
+	int sys_waitpid(pid_t pid, int *status, int flags, struct rusage *ru, pid_t *ret_pid) {
+		syscall_result r = syscall(SYSCALL_waitpid, (size_t)pid, (size_t)status, flags);
+		SYSCALL_ERR_CHECK(r)
+		*ret_pid = (int)r.value;
+		return 0;
+	}
+
+	int sys_chdir(const char *path) {
+		return syscall(SYSCALL_chdir, (size_t)path).error;
 	}
 
 	pid_t sys_getpid() {

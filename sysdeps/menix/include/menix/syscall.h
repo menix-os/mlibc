@@ -45,6 +45,7 @@
 #define SYSCALL_powerctl 39
 #define SYSCALL_archctl 40
 #define SYSCALL_getcwd 41
+#define SYSCALL_waitpid 42
 
 #ifndef __MLIBC_ABI_ONLY
 
