@@ -24,7 +24,6 @@ namespace mlibc {
 	}
 
 	[[noreturn]] void sys_libc_panic() {
-		//sys_libc_log("\nMLIBC PANIC\n");
 		sys_exit(1);
 	}
 
@@ -44,6 +43,15 @@ namespace mlibc {
 
 	int sys_futex_wake(int *pointer) {
 		// TODO
+		return 0;
+	}
+
+	int sys_sigsuspend(const sigset_t *set) {
+		syscall(SYSCALL_signal, SIGNAL_SUSPEND, (size_t)set);
+		return EINTR;
+	}
+	
+	int sys_sigaction(int, const struct sigaction *__restrict, struct sigaction *__restrict) {
 		return 0;
 	}
 
