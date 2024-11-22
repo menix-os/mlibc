@@ -46,9 +46,7 @@
 #define SYSCALL_archctl 40
 #define SYSCALL_getcwd 41
 #define SYSCALL_waitpid 42
-#define SYSCALL_signal 43
-
-#define SIGNAL_SUSPEND 0
+#define SYSCALL_sigsuspend 43
 
 #ifndef __MLIBC_ABI_ONLY
 

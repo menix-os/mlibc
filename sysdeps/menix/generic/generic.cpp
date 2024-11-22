@@ -19,8 +19,6 @@ namespace mlibc {
 	void sys_libc_log(const char *message) {
 		ssize_t written;
 		sys_write(1, message, strlen(message), &written);
-		char c = '\n';
-		sys_write(1, &c, 1, &written);
 	}
 
 	[[noreturn]] void sys_libc_panic() {
@@ -47,7 +45,7 @@ namespace mlibc {
 	}
 
 	int sys_sigsuspend(const sigset_t *set) {
-		syscall(SYSCALL_signal, SIGNAL_SUSPEND, (size_t)set);
+		syscall(SYSCALL_sigsuspend, (size_t)set);
 		return EINTR;
 	}
 	
