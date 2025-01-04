@@ -19,6 +19,8 @@ namespace mlibc {
 	void sys_libc_log(const char *message) {
 		ssize_t written;
 		sys_write(1, message, strlen(message), &written);
+		const char newline = '\n';
+		sys_write(1, &newline, 1, &written);
 	}
 
 	[[noreturn]] void sys_libc_panic() {
