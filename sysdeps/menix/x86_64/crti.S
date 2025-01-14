@@ -9,4 +9,3 @@ _fini:
 	push %rax
 
 .section .note.GNU-stack,"",%progbits
-

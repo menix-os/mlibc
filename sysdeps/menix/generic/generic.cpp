@@ -206,4 +206,8 @@ namespace mlibc {
 		return ENOTTY;
 	}
 
+	int sys_sigprocmask(int how, const sigset_t *__restrict set, sigset_t *__restrict retrieve) {
+		return 0;
+	}
+
 } // namespace mlibc
