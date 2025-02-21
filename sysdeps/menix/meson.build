@@ -5,14 +5,9 @@ sysdep_supported_options = {
 	'bsd': true,
 }
 
-rtld_sources += files(
-	'generic/generic.cpp'
-)
+rtld_sources += files('generic/generic.cpp')
 
-libc_sources += files(
-	'generic/entry.cpp',
-	'generic/generic.cpp'
-)
+libc_sources += files('generic/entry.cpp', 'generic/generic.cpp')
 
 if not no_headers
 	install_headers(
@@ -66,6 +61,11 @@ if not no_headers
 	install_headers(
 		'include/sys/sysmacros.h',
 		subdir: 'sys',
+	)
+
+	install_headers(
+		'include/linux/fb.h',
+		subdir: 'linux',
 	)
 endif
 
