@@ -34,7 +34,7 @@ void sys_exit(int code) {
 
 int sys_tcb_set(void *pointer) { return syscall(SYSCALL_savetls, (size_t)pointer).error; }
 
-int sys_futex_tid() { return syscall(SYSCALL_gettid).error; }
+int sys_futex_tid() { return syscall(SYSCALL_gettid).value; }
 
 int sys_futex_wait(int *pointer, int expected, const struct timespec *time) {
 	return syscall(SYSCALL_futex_wait, (size_t)pointer, (size_t)expected, (size_t)time).error;
