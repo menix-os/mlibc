@@ -1,6 +1,7 @@
 #include <bits/ensure.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <mlibc/all-sysdeps.hpp>
 #include <mlibc/debug.hpp>
 #include <poll.h>
@@ -187,5 +188,26 @@ int sys_isatty(int fd) { return syscall(SYSCALL_isatty, fd).value; }
 int sys_sigprocmask(int how, const sigset_t *__restrict set, sigset_t *__restrict retrieve) {
 	return syscall(SYSCALL_sigprocmask, how, (size_t)set, (size_t)retrieve).error;
 }
+
+int sys_faccessat(int dirfd, const char *pathname, int mode, int flags) {
+	return syscall(SYSCALL_faccessat, dirfd, (size_t)pathname, mode, flags).error;
+}
+
+int sys_access(const char *path, int mode) {
+	return sys_faccessat(AT_FDCWD, path, mode, 0);
+}
+
+int sys_open_dir(const char *path, int *handle) {
+	return sys_open(path, O_DIRECTORY, 0, handle);
+}
+
+int sys_mkdirat(int dirfd, const char *path, mode_t mode) {
+	return syscall(SYSCALL_mkdirat, dirfd, (size_t)path, mode).error;
+}
+
+int sys_mkdir(const char *path, mode_t mode) {
+	return sys_mkdirat(AT_FDCWD, path, mode);
+}
+
 
 } // namespace mlibc
