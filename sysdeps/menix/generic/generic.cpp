@@ -25,10 +25,10 @@ void sys_libc_log(const char *message) {
 
 [[noreturn]] void sys_libc_panic() {
 	sys_libc_log("mlibc panic!");
-	sys_exit(0xC);
+	sys_exit(1);
 }
 
-void sys_exit(int code) {
+[[noreturn]] void sys_exit(int code) {
 	syscall(SYSCALL_exit, code);
 	__builtin_unreachable();
 }
@@ -48,8 +48,9 @@ int sys_sigsuspend(const sigset_t *set) {
 	return EINTR;
 }
 
-int sys_sigaction(int, const struct sigaction *__restrict, struct sigaction *__restrict) {
-	return 0;
+int
+sys_sigaction(int sig, const struct sigaction *__restrict act, struct sigaction *__restrict oact) {
+	return syscall(SYSCALL_sigaction, sig, (size_t)act, (size_t)oact).error;
 }
 
 int sys_anon_allocate(size_t size, void **pointer) {
@@ -90,6 +91,14 @@ int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
 	if (r.error != 0)
 		return r.error;
 	*new_offset = r.value;
+	return 0;
+}
+
+int sys_ioctl(int fd, unsigned long request, void *arg, int *result) {
+	auto r = syscall(SYSCALL_ioctl, fd, request, (size_t)arg);
+	if (r.error != 0)
+		return r.error;
+	*result = r.value;
 	return 0;
 }
 
@@ -183,7 +192,15 @@ int sys_execve(const char *path, char *const argv[], char *const envp[]) {
 	return syscall(SYSCALL_execve, (size_t)path, (size_t)argv, (size_t)envp).error;
 }
 
-int sys_isatty(int fd) { return syscall(SYSCALL_isatty, fd).value; }
+int sys_isatty(int fd) {
+	struct winsize ws;
+	long ret = sys_ioctl(fd, TIOCGWINSZ, &ws, 0);
+
+	if (!ret)
+		return 0;
+
+	return ENOTTY;
+}
 
 int sys_sigprocmask(int how, const sigset_t *__restrict set, sigset_t *__restrict retrieve) {
 	return syscall(SYSCALL_sigprocmask, how, (size_t)set, (size_t)retrieve).error;
@@ -193,21 +210,14 @@ int sys_faccessat(int dirfd, const char *pathname, int mode, int flags) {
 	return syscall(SYSCALL_faccessat, dirfd, (size_t)pathname, mode, flags).error;
 }
 
-int sys_access(const char *path, int mode) {
-	return sys_faccessat(AT_FDCWD, path, mode, 0);
-}
+int sys_access(const char *path, int mode) { return sys_faccessat(AT_FDCWD, path, mode, 0); }
 
-int sys_open_dir(const char *path, int *handle) {
-	return sys_open(path, O_DIRECTORY, 0, handle);
-}
+int sys_open_dir(const char *path, int *handle) { return sys_open(path, O_DIRECTORY, 0, handle); }
 
 int sys_mkdirat(int dirfd, const char *path, mode_t mode) {
 	return syscall(SYSCALL_mkdirat, dirfd, (size_t)path, mode).error;
 }
 
-int sys_mkdir(const char *path, mode_t mode) {
-	return sys_mkdirat(AT_FDCWD, path, mode);
-}
-
+int sys_mkdir(const char *path, mode_t mode) { return sys_mkdirat(AT_FDCWD, path, mode); }
 
 } // namespace mlibc

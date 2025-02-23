@@ -48,27 +48,26 @@
 #define SYSCALL_getgid 42
 #define SYSCALL_umask 43
 #define SYSCALL_poll 44
-#define SYSCALL_isatty 45
-#define SYSCALL_chroot 46
-#define SYSCALL_futex_wait 47
-#define SYSCALL_futex_wake 48
-#define SYSCALL_socket 49
-#define SYSCALL_socketpair 50
-#define SYSCALL_bind 51
-#define SYSCALL_connect 52
-#define SYSCALL_accept 53
-#define SYSCALL_listen 54
-#define SYSCALL_getpeername 55
-#define SYSCALL_getsockname 56
-#define SYSCALL_getsockopt 57
-#define SYSCALL_setsockopt 58
-#define SYSCALL_recvmsg 59
-#define SYSCALL_sendmsg 60
-#define SYSCALL_sethostname 61
-#define SYSCALL_uname 62
-#define SYSCALL_archctl 63
-#define SYSCALL_readtimer 64
-#define SYSCALL_savetls 65
+#define SYSCALL_chroot 45
+#define SYSCALL_futex_wait 46
+#define SYSCALL_futex_wake 47
+#define SYSCALL_socket 48
+#define SYSCALL_socketpair 49
+#define SYSCALL_bind 50
+#define SYSCALL_connect 51
+#define SYSCALL_accept 52
+#define SYSCALL_listen 53
+#define SYSCALL_getpeername 54
+#define SYSCALL_getsockname 55
+#define SYSCALL_getsockopt 56
+#define SYSCALL_setsockopt 57
+#define SYSCALL_recvmsg 58
+#define SYSCALL_sendmsg 59
+#define SYSCALL_sethostname 60
+#define SYSCALL_uname 61
+#define SYSCALL_archctl 62
+#define SYSCALL_readtimer 63
+#define SYSCALL_savetls 64
 
 #ifndef __MLIBC_ABI_ONLY
 
@@ -78,7 +77,6 @@ struct syscall_result {
 };
 static_assert(sizeof(syscall_result) == 16);
 
-#ifdef __x86_64__
 extern "C" inline syscall_result syscall(
     size_t num,
     size_t a0 = 0,
@@ -89,6 +87,7 @@ extern "C" inline syscall_result syscall(
     size_t a5 = 0
 ) {
 	syscall_result r;
+#ifdef __x86_64__
 	asm volatile("mov %2, %%rax;"
 	             "mov %3, %%rdi;"
 	             "mov %4, %%rsi;"
@@ -102,9 +101,9 @@ extern "C" inline syscall_result syscall(
 	             : "=g"(r.value), "=g"(r.error)
 	             : "g"(num), "g"(a0), "g"(a1), "g"(a2), "g"(a3), "g"(a4), "g"(a5)
 	             : "rax", "rdi", "rsi", "rdx", "r8", "r10", "r9", "rcx", "r11", "memory");
+#endif /* __x86_64 */
 	return r;
 }
-#endif /* __x86_64 */
 
 #endif /* !__MLIBC_ABI_ONLY */
 
