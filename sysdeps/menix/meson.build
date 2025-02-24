@@ -1,13 +1,12 @@
 sysdep_supported_options = {
 	'posix': true,
-	'linux': false,
+	'linux': true,
 	'glibc': true,
 	'bsd': true,
 }
 
-rtld_sources += files('generic/generic.cpp')
-
-libc_sources += files('generic/entry.cpp', 'generic/generic.cpp')
+rtld_sources += files('generic/internal.cpp', 'generic/posix.cpp')
+libc_sources += files('generic/entry.cpp', 'generic/internal.cpp', 'generic/posix.cpp')
 
 if not no_headers
 	install_headers(
@@ -66,11 +65,6 @@ if not no_headers
 	install_headers(
 		'include/sys/sysmacros.h',
 		subdir: 'sys',
-	)
-
-	install_headers(
-		'include/linux/fb.h',
-		subdir: 'linux',
 	)
 endif
 
