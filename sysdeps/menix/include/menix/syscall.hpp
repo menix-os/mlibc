@@ -13,7 +13,7 @@
 #define SYSCALL_sigprocmask 7
 #define SYSCALL_sigsuspend 8
 #define SYSCALL_sigpending 9
-#define SYSCALL_sigaction 0
+#define SYSCALL_sigaction 10
 #define SYSCALL_sigtimedwait 11
 #define SYSCALL_mmap 12
 #define SYSCALL_munmap 13
