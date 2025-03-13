@@ -7,7 +7,7 @@
 namespace mlibc {
 
 [[noreturn]] void sys_exit(int status) {
-	syscall(SYSCALL_exit, status);
+	menix_syscall(SYSCALL_exit, status);
 	__builtin_unreachable();
 }
 
@@ -15,7 +15,7 @@ namespace mlibc {
 
 int sys_clock_get(int clock, time_t *secs, long *nanos) {
 	struct timespec ts;
-	auto r = syscall(SYSCALL_readtimer, clock, (size_t)&ts);
+	auto r = menix_syscall(SYSCALL_readtimer, clock, (size_t)&ts);
 	if (r.error != 0)
 		return r.error;
 	*secs = ts.tv_sec;
@@ -32,7 +32,7 @@ int sys_open_dir(const char *path, int *handle) { return sys_open(path, O_DIRECT
 [[gnu::weak]] int sys_readv(int fd, const struct iovec *iovs, int iovc, ssize_t *bytes_read);
 
 int sys_write(int fd, const void *buf, size_t count, ssize_t *bytes_written) {
-	auto r = syscall(SYSCALL_write, (size_t)fd, (size_t)buf, count);
+	auto r = menix_syscall(SYSCALL_write, (size_t)fd, (size_t)buf, count);
 	if (r.error != 0)
 		return r.error;
 	*bytes_written = r.value;
@@ -45,7 +45,7 @@ int sys_write(int fd, const void *buf, size_t count, ssize_t *bytes_written) {
 int sys_access(const char *path, int mode) { return sys_faccessat(AT_FDCWD, path, mode, 0); }
 
 int sys_faccessat(int dirfd, const char *pathname, int mode, int flags) {
-	return syscall(SYSCALL_faccessat, dirfd, (size_t)pathname, mode, flags).error;
+	return menix_syscall(SYSCALL_faccessat, dirfd, (size_t)pathname, mode, flags).error;
 }
 
 [[gnu::weak]] int sys_dup(int fd, int flags, int *newfd);
@@ -72,7 +72,7 @@ sys_readlinkat(int dirfd, const char *path, void *buffer, size_t max_size, ssize
 [[gnu::weak]] int sys_unlinkat(int fd, const char *path, int flags);
 
 int sys_openat(int dirfd, const char *path, int flags, mode_t mode, int *fd) {
-	auto r = syscall(SYSCALL_openat, dirfd, (size_t)path, flags, mode);
+	auto r = menix_syscall(SYSCALL_openat, dirfd, (size_t)path, flags, mode);
 	if (r.error != 0)
 		return r.error;
 	*fd = (int)r.value;
@@ -106,7 +106,7 @@ int sys_openat(int dirfd, const char *path, int flags, mode_t mode, int *fd) {
 [[gnu::weak]] uid_t sys_getuid();
 [[gnu::weak]] uid_t sys_geteuid();
 
-pid_t sys_getpid() { return syscall(SYSCALL_getpid).value; }
+pid_t sys_getpid() { return menix_syscall(SYSCALL_getpid).value; }
 
 [[gnu::weak]] pid_t sys_gettid();
 [[gnu::weak]] pid_t sys_getppid();
@@ -122,7 +122,7 @@ pid_t sys_getpid() { return syscall(SYSCALL_getpid).value; }
 [[gnu::weak]] int sys_sleep(time_t *secs, long *nanos);
 
 int sys_fork(pid_t *child) {
-	auto r = syscall(SYSCALL_fork);
+	auto r = menix_syscall(SYSCALL_fork);
 	if (r.error != 0)
 		return r.error;
 	*child = r.value;
@@ -130,7 +130,7 @@ int sys_fork(pid_t *child) {
 }
 
 int sys_execve(const char *path, char *const argv[], char *const envp[]) {
-	return syscall(SYSCALL_execve, (size_t)path, (size_t)argv, (size_t)envp).error;
+	return menix_syscall(SYSCALL_execve, (size_t)path, (size_t)argv, (size_t)envp).error;
 }
 
 [[gnu::weak]] int sys_pselect(
@@ -155,10 +155,10 @@ int sys_execve(const char *path, char *const argv[], char *const envp[]) {
 [[gnu::weak]] int sys_get_min_priority(int policy, int *out);
 
 int sys_getcwd(char *buffer, size_t size) {
-	return syscall(SYSCALL_getcwd, (size_t)buffer, size).error;
+	return menix_syscall(SYSCALL_getcwd, (size_t)buffer, size).error;
 }
 
-int sys_chdir(const char *path) { return syscall(SYSCALL_chdir, (size_t)path).error; }
+int sys_chdir(const char *path) { return menix_syscall(SYSCALL_chdir, (size_t)path).error; }
 
 [[gnu::weak]] int sys_fchdir(int fd);
 [[gnu::weak]] int sys_chroot(const char *path);
@@ -166,7 +166,7 @@ int sys_chdir(const char *path) { return syscall(SYSCALL_chdir, (size_t)path).er
 int sys_mkdir(const char *path, mode_t mode) { return sys_mkdirat(AT_FDCWD, path, mode); }
 
 int sys_mkdirat(int dirfd, const char *path, mode_t mode) {
-	return syscall(SYSCALL_mkdirat, dirfd, (size_t)path, mode).error;
+	return menix_syscall(SYSCALL_mkdirat, dirfd, (size_t)path, mode).error;
 }
 
 [[gnu::weak]] int sys_link(const char *old_path, const char *new_path);
@@ -208,7 +208,7 @@ sys_utimensat(int dirfd, const char *pathname, const struct timespec times[2], i
 [[gnu::weak]] int sys_poll(struct pollfd *fds, nfds_t count, int timeout, int *num_events);
 
 int sys_ioctl(int fd, unsigned long request, void *arg, int *result) {
-	auto r = syscall(SYSCALL_ioctl, fd, request, (size_t)arg);
+	auto r = menix_syscall(SYSCALL_ioctl, fd, request, (size_t)arg);
 	if (r.error != 0)
 		return r.error;
 	*result = r.value;
@@ -221,12 +221,12 @@ sys_getsockopt(int fd, int layer, int number, void *__restrict buffer, socklen_t
 [[gnu::weak]] int sys_shutdown(int sockfd, int how);
 
 int sys_sigprocmask(int how, const sigset_t *__restrict set, sigset_t *__restrict retrieve) {
-	return syscall(SYSCALL_sigprocmask, how, (size_t)set, (size_t)retrieve).error;
+	return menix_syscall(SYSCALL_sigprocmask, how, (size_t)set, (size_t)retrieve).error;
 }
 
 int
 sys_sigaction(int sig, const struct sigaction *__restrict act, struct sigaction *__restrict oact) {
-	return syscall(SYSCALL_sigaction, sig, (size_t)act, (size_t)oact).error;
+	return menix_syscall(SYSCALL_sigaction, sig, (size_t)act, (size_t)oact).error;
 }
 
 // NOTE: POSIX says that behavior of timeout = nullptr is unspecified. We treat this case
@@ -248,7 +248,11 @@ sys_accept(int fd, int *newfd, struct sockaddr *addr_ptr, socklen_t *addr_length
 [[gnu::weak]] int sys_peername(
     int fd, struct sockaddr *addr_ptr, socklen_t max_addr_length, socklen_t *actual_length
 );
-[[gnu::weak]] int sys_gethostname(char *buffer, size_t bufsize);
+
+int sys_gethostname(char *buffer, size_t bufsize) {
+	return menix_syscall(SYSCALL_gethostname, (size_t)buffer, bufsize).error;
+}
+
 [[gnu::weak]] int sys_sethostname(const char *buffer, size_t bufsize);
 [[gnu::weak]] int sys_mkfifoat(int dirfd, const char *path, mode_t mode);
 [[gnu::weak]] int sys_getentropy(void *buffer, size_t length);
@@ -263,7 +267,7 @@ sys_fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, int flag
 [[gnu::weak]] int sys_sigaltstack(const stack_t *ss, stack_t *oss);
 
 int sys_sigsuspend(const sigset_t *set) {
-	syscall(SYSCALL_sigsuspend, (size_t)set);
+	menix_syscall(SYSCALL_sigsuspend, (size_t)set);
 	return EINTR;
 }
 
@@ -284,7 +288,7 @@ sys_timer_create(clockid_t clk, struct sigevent *__restrict evp, timer_t *__rest
 [[gnu::weak]] int sys_timer_delete(timer_t t);
 [[gnu::weak]] int sys_times(struct tms *tms, clock_t *out);
 
-int sys_uname(struct utsname *buf) { return syscall(SYSCALL_uname, (size_t)buf).error; }
+int sys_uname(struct utsname *buf) { return menix_syscall(SYSCALL_uname, (size_t)buf).error; }
 
 [[gnu::weak]] int sys_pause();
 
@@ -317,7 +321,9 @@ int sys_uname(struct utsname *buf) { return syscall(SYSCALL_uname, (size_t)buf).
 [[gnu::weak]] int sys_setaffinity(pid_t pid, size_t cpusetsize, const cpu_set_t *mask);
 [[gnu::weak]] int sys_setthreadaffinity(pid_t tid, size_t cpusetsize, const cpu_set_t *mask);
 
-[[gnu::weak]] int sys_waitid(idtype_t idtype, id_t id, siginfo_t *info, int options);
+int sys_waitid(idtype_t idtype, id_t id, siginfo_t *info, int options) {
+	return menix_syscall(SYSCALL_waitid, idtype, id, (size_t)info, options).error;
+}
 
 [[gnu::weak]] int sys_name_to_handle_at(
     int dirfd, const char *pathname, struct file_handle *handle, int *mount_id, int flags

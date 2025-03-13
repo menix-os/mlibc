@@ -77,9 +77,10 @@
 #define SYSCALL_setsockopt 71
 #define SYSCALL_recvmsg 72
 #define SYSCALL_sendmsg 73
-#define SYSCALL_sethostname 74
-#define SYSCALL_sched_setaffinity 75
-#define SYSCALL_sched_getaffinity 76
+#define SYSCALL_gethostname 74
+#define SYSCALL_sethostname 75
+#define SYSCALL_sched_setaffinity 76
+#define SYSCALL_sched_getaffinity 77
 
 #ifndef __MLIBC_ABI_ONLY
 
@@ -89,7 +90,7 @@ struct syscall_result {
 };
 static_assert(sizeof(syscall_result) == 16);
 
-extern "C" inline syscall_result syscall(
+extern "C" inline syscall_result menix_syscall(
     size_t num,
     size_t a0 = 0,
     size_t a1 = 0,
@@ -100,19 +101,14 @@ extern "C" inline syscall_result syscall(
 ) {
 	syscall_result r;
 #ifdef __x86_64__
-	asm volatile("mov %2, %%rax;"
-	             "mov %3, %%rdi;"
-	             "mov %4, %%rsi;"
-	             "mov %5, %%rdx;"
-	             "mov %6, %%r8;"
-	             "mov %7, %%r10;"
-	             "mov %8, %%r9;"
-	             "syscall;"
-	             "mov %%rax, %0;"
-	             "mov %%rdx, %1;"
-	             : "=g"(r.value), "=g"(r.error)
-	             : "g"(num), "g"(a0), "g"(a1), "g"(a2), "g"(a3), "g"(a4), "g"(a5)
-	             : "rax", "rdi", "rsi", "rdx", "r8", "r10", "r9", "rcx", "r11", "memory");
+	register size_t r3 asm("r10") = a3;
+	register size_t r4 asm("r8") = a4;
+	register size_t r5 asm("r9") = a5;
+
+	asm volatile("syscall"
+	             : "=a"(r.value), "=d"(r.error)
+	             : "a"(num), "D"(a0), "S"(a1), "d"(a2), "r"(r3), "r"(r4), "r"(r5)
+	             : "memory", "rcx", "r11");
 #endif /* __x86_64 */
 	return r;
 }
