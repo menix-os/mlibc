@@ -48,7 +48,14 @@ int sys_faccessat(int dirfd, const char *pathname, int mode, int flags) {
 	return menix_syscall(SYSCALL_faccessat, dirfd, (size_t)pathname, mode, flags).error;
 }
 
-[[gnu::weak]] int sys_dup(int fd, int flags, int *newfd);
+int sys_dup(int fd, int flags, int *newfd) {
+	auto r = menix_syscall(SYSCALL_dup, fd, flags);
+	if (r.error != 0)
+		return r.error;
+	*newfd = r.value;
+	return 0;
+}
+
 [[gnu::weak]] int sys_dup2(int fd, int flags, int newfd);
 
 int sys_isatty(int fd) {
@@ -63,10 +70,23 @@ int sys_isatty(int fd) {
 
 [[gnu::weak]] int sys_statvfs(const char *path, struct statvfs *out);
 [[gnu::weak]] int sys_fstatvfs(int fd, struct statvfs *out);
-[[gnu::weak]] int sys_readlink(const char *path, void *buffer, size_t max_size, ssize_t *length);
-[[gnu::weak]] int
-sys_readlinkat(int dirfd, const char *path, void *buffer, size_t max_size, ssize_t *length);
-[[gnu::weak]] int sys_rmdir(const char *path);
+
+int sys_readlink(const char *path, void *buffer, size_t max_size, ssize_t *length) {
+	return sys_readlinkat(AT_FDCWD, path, buffer, max_size, length);
+}
+
+int sys_readlinkat(int dirfd, const char *path, void *buffer, size_t max_size, ssize_t *length) {
+	auto r = menix_syscall(SYSCALL_readlinkat, dirfd, (size_t)path, (size_t)buffer, max_size);
+	if (r.error != 0)
+		return r.error;
+	*length = r.value;
+	return 0;
+}
+
+int sys_rmdir(const char *path) {
+	return menix_syscall(SYSCALL_rmdirat, AT_FDCWD, (size_t)path).error;
+}
+
 [[gnu::weak]] int sys_ftruncate(int fd, size_t size);
 [[gnu::weak]] int sys_fallocate(int fd, off_t offset, size_t size);
 [[gnu::weak]] int sys_unlinkat(int fd, const char *path, int flags);
@@ -108,17 +128,32 @@ int sys_openat(int dirfd, const char *path, int flags, mode_t mode, int *fd) {
 
 pid_t sys_getpid() { return menix_syscall(SYSCALL_getpid).value; }
 
-[[gnu::weak]] pid_t sys_gettid();
-[[gnu::weak]] pid_t sys_getppid();
-[[gnu::weak]] int sys_getpgid(pid_t pid, pid_t *pgid);
-[[gnu::weak]] int sys_getsid(pid_t pid, pid_t *sid);
+pid_t sys_gettid() { return menix_syscall(SYSCALL_gettid).value; }
+
+pid_t sys_getppid() { return menix_syscall(SYSCALL_getpgid).value; }
+
+int sys_getpgid(pid_t pid, pid_t *pgid) {
+	auto r = menix_syscall(SYSCALL_getpgid, pid);
+	if (r.error != 0)
+		return r.error;
+	*pgid = r.value;
+	return 0;
+}
+
+int sys_getsid(pid_t pid, pid_t *sid) {
+	auto r = menix_syscall(SYSCALL_getsid, pid);
+	if (r.error != 0)
+		return r.error;
+	*sid = r.value;
+	return 0;
+}
 [[gnu::weak]] int sys_setpgid(pid_t pid, pid_t pgid);
 [[gnu::weak]] int sys_setuid(uid_t uid);
 [[gnu::weak]] int sys_seteuid(uid_t euid);
 [[gnu::weak]] int sys_setgid(gid_t gid);
 [[gnu::weak]] int sys_setegid(gid_t egid);
 [[gnu::weak]] int sys_getgroups(size_t size, gid_t *list, int *ret);
-[[gnu::weak]] void sys_yield();
+void sys_yield() { menix_syscall(SYSCALL_yield); }
 [[gnu::weak]] int sys_sleep(time_t *secs, long *nanos);
 
 int sys_fork(pid_t *child) {
@@ -160,8 +195,9 @@ int sys_getcwd(char *buffer, size_t size) {
 
 int sys_chdir(const char *path) { return menix_syscall(SYSCALL_chdir, (size_t)path).error; }
 
-[[gnu::weak]] int sys_fchdir(int fd);
-[[gnu::weak]] int sys_chroot(const char *path);
+int sys_fchdir(int fd) { return menix_syscall(SYSCALL_fchdir, fd).error; };
+
+int sys_chroot(const char *path) { return menix_syscall(SYSCALL_chroot, (size_t)path).error; }
 
 int sys_mkdir(const char *path, mode_t mode) { return sys_mkdirat(AT_FDCWD, path, mode); }
 
@@ -169,9 +205,17 @@ int sys_mkdirat(int dirfd, const char *path, mode_t mode) {
 	return menix_syscall(SYSCALL_mkdirat, dirfd, (size_t)path, mode).error;
 }
 
-[[gnu::weak]] int sys_link(const char *old_path, const char *new_path);
-[[gnu::weak]] int
-sys_linkat(int olddirfd, const char *old_path, int newdirfd, const char *new_path, int flags);
+int sys_link(const char *old_path, const char *new_path) {
+	return sys_linkat(AT_FDCWD, old_path, AT_FDCWD, new_path, 0);
+}
+
+int sys_linkat(int olddirfd, const char *old_path, int newdirfd, const char *new_path, int flags) {
+	return menix_syscall(
+	           SYSCALL_linkat, olddirfd, (size_t)old_path, newdirfd, (size_t)new_path, flags
+	)
+	    .error;
+}
+
 [[gnu::weak]] int sys_symlink(const char *target_path, const char *link_path);
 [[gnu::weak]] int sys_symlinkat(const char *target_path, int dirfd, const char *link_path);
 [[gnu::weak]] int sys_rename(const char *path, const char *new_path);
@@ -237,7 +281,9 @@ sys_sigaction(int sig, const struct sigaction *__restrict act, struct sigaction 
     const struct timespec *__restrict timeout,
     int *out_signal
 );
-[[gnu::weak]] int sys_kill(int, int);
+
+int sys_kill(int pid, int signal) { return menix_syscall(SYSCALL_kill, pid, signal).error; }
+
 [[gnu::weak]] int
 sys_accept(int fd, int *newfd, struct sockaddr *addr_ptr, socklen_t *addr_length, int flags);
 [[gnu::weak]] int sys_bind(int fd, const struct sockaddr *addr_ptr, socklen_t addr_length);
@@ -253,7 +299,10 @@ int sys_gethostname(char *buffer, size_t bufsize) {
 	return menix_syscall(SYSCALL_gethostname, (size_t)buffer, bufsize).error;
 }
 
-[[gnu::weak]] int sys_sethostname(const char *buffer, size_t bufsize);
+int sys_sethostname(const char *buffer, size_t bufsize) {
+	return menix_syscall(SYSCALL_sethostname, (size_t)buffer, bufsize).error;
+}
+
 [[gnu::weak]] int sys_mkfifoat(int dirfd, const char *path, mode_t mode);
 [[gnu::weak]] int sys_getentropy(void *buffer, size_t length);
 [[gnu::weak]] int sys_mknodat(int dirfd, const char *path, int mode, int dev);
