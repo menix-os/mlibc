@@ -2,6 +2,7 @@ sysdep_supported_options = {
 	'posix': true,
 	'glibc': true,
 	'bsd': true,
+	'linux-epoll': true,
 }
 
 rtld_sources += files(
@@ -27,6 +28,7 @@ if not no_headers
 		'include/abi-bits/blksize_t.h',
 		'include/abi-bits/clockid_t.h',
 		'include/abi-bits/dev_t.h',
+		'include/abi-bits/epoll.h',
 		'include/abi-bits/errno.h',
 		'include/abi-bits/fcntl.h',
 		'include/abi-bits/fd_set.h',
