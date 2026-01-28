@@ -339,6 +339,22 @@ class RustBindingGenerator:
                     ):
                         spelling = f"0o{spelling[1:]}"
 
+                    # Escape string literals
+                    if spelling.startswith('"') and spelling.endswith('"'):
+                        spelling = "c" + spelling
+                        c_type = "CStr"
+                        tokens.append(spelling)
+                        i += 1
+                        continue
+
+                    # Escape character literals
+                    if spelling.startswith("'") and spelling.endswith("'"):
+                        spelling = "b" + spelling
+                        c_type = "u8"
+                        tokens.append(spelling)
+                        i += 1
+                        continue
+
                     tokens.append(spelling)
                     i += 1
                 else:
@@ -348,7 +364,11 @@ class RustBindingGenerator:
                     )
                     done = True
                 c_type = "c_" + ("u" if is_unsigned else "") + c_type
-            if not self.is_ignored("macros", state.macros, cursor.displayname):
+            if not self.is_ignored("macros", state.macros, cursor.displayname) and not (
+                # Skip macros like #define FOO FOO
+                len(tokens) == 1
+                and cursor.displayname == tokens[0]
+            ):
                 for name in config["force_macro_type"]:
                     if cursor.displayname in config["force_macro_type"][name]:
                         c_type = name
@@ -467,8 +487,13 @@ class RustBindingGenerator:
                         emit(f"{c.displayname} = {c.enum_value},")
                     case CursorKind.PACKED_ATTR:
                         pass
+                    case CursorKind.ALIGNED_ATTR:
+                        pass
                     case _:
-                        log_err(f"unhandled {cursor.kind} member", f"kind {c.kind}")
+                        log_err(
+                            f"unhandled {cursor.kind} member",
+                            f"kind {c.kind} at {cursor.location}",
+                        )
         emit(self.indent() + "}")
 
         if cursor.kind == CursorKind.ENUM_DECL:
@@ -637,7 +662,8 @@ def parse(file: pathlib.Path, base_dir: pathlib.Path):
     try:
         tu = index.parse(
             base_dir / file,
-            args=[f"-I{p}" for p in config["includes"]] + ["-I" + str(base_dir), "-D_GNU_SOURCE"],
+            args=[f"-I{p}" for p in config["includes"]]
+            + ["-I" + str(base_dir), "-D_GNU_SOURCE"],
             options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
             | clang.cindex.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES,
         )
@@ -662,14 +688,13 @@ def parse(file: pathlib.Path, base_dir: pathlib.Path):
 def gcc_install_path(gcc: str) -> pathlib.Path | None:
     try:
         result = subprocess.run(
-            [gcc, '-print-search-dirs'],
-            capture_output=True,
-            text=True,
-            check=True
+            [gcc, "-print-search-dirs"], capture_output=True, text=True, check=True
         )
         for line in result.stdout.splitlines():
-            if line.startswith('install:'):
-                return (pathlib.Path(line.removeprefix('install: ').strip()) / 'include').resolve()
+            if line.startswith("install:"):
+                return (
+                    pathlib.Path(line.removeprefix("install: ").strip()) / "include"
+                ).resolve()
     except subprocess.CalledProcessError as e:
         print(f"Error running {gcc}:", e)
     except FileNotFoundError:
@@ -680,6 +705,18 @@ def gcc_install_path(gcc: str) -> pathlib.Path | None:
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", dest="dry_run", action="store_true")
+    argparser.add_argument(
+        "--config",
+        dest="config_paths",
+        action="append",
+        default=[],
+    )
+    argparser.add_argument(
+        "--header",
+        dest="header_paths",
+        action="append",
+        default=[],
+    )
     argparser.add_argument("path")
     argparser.add_argument("gcc")
     argparser.add_argument("file", nargs="?")
@@ -687,11 +724,31 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     dry_run = args.dry_run
+    config_paths = (
+        args.config_paths
+        if len(args.config_paths) != 0
+        else [os.path.join(os.path.dirname(__file__), "rust-libc-config.yml")]
+    )
+    header_paths = (
+        args.header_paths
+        if len(args.header_paths) != 0
+        else [os.path.join(os.path.dirname(__file__), "rust-libc-header.rs")]
+    )
 
     colorama.just_fix_windows_console()
 
-    with io.open(os.path.join(os.path.dirname(__file__), "rust-libc-config.yml"), "r") as f:
-        config = yaml.load(f, yaml.CSafeLoader)
+    config_yaml = []
+    for c in config_paths:
+        with io.open(c, "r") as f:
+            config_yaml.append(yaml.load(f, yaml.CSafeLoader))
+
+    config = {}
+    for y in config_yaml:
+        for k, v in y.items():
+            if config.get(k) is None:
+                config[k] = v
+            else:
+                config[k].extend(v)
 
     path = pathlib.Path(args.path)
 
@@ -700,13 +757,16 @@ if __name__ == "__main__":
         print("could not determine gcc's include directory")
         exit(1)
 
-    gcc_include_path = os.path.relpath(pathlib.Path(gcc_include_path), pathlib.Path.cwd())
+    gcc_include_path = os.path.relpath(
+        pathlib.Path(gcc_include_path), pathlib.Path.cwd()
+    )
     if "includes" not in config:
-            config["includes"] = list()
+        config["includes"] = list()
     config["includes"].insert(0, gcc_include_path)
 
-    with io.open(os.path.join(os.path.dirname(__file__), "rust-libc-header.rs"), "r") as f:
-        emit(f.read())
+    for header_path in header_paths:
+        with io.open(header_path, "r") as f:
+            emit(f.read())
 
     state = State()
 
